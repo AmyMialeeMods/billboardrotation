@@ -5,6 +5,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
@@ -27,16 +28,20 @@ public class BillboardRotation implements ClientModInitializer {
     public static final MValue<Integer> ANIMATION_DELAY = MValue.of(id("animation_delay"), MValue.INTEGER.of(1, 1, 60)).category(BILLBOARD_ROTATION).clientSide().item(Items.CLOCK).build();
     public static final MValue<Boolean> ROTATE_VERTICALLY = MValue.of(id("rotate_vertically"), MValue.BOOLEAN_TRUE).category(BILLBOARD_ROTATION).clientSide().item(Items.ENDER_EYE).build();
 
+    public static boolean shouldSetAngles(int age) {
+        return age % ANIMATION_DELAY.get() == 0;
+    }
+
     @Override
     public void onInitializeClient() {}
 
     public static float getBodyRotation(Vec3d lastPos, Vec3d pos, float original, float interval) {
         var client = MinecraftClient.getInstance();
-        var player = client.player;
+        var player = client.gameRenderer.getCamera();
         if (player == null || interval <= 0) return original;
         var delta = client.getRenderTickCounter().getTickDelta(true);
-        var last = new Vec3d(player.prevX, player.prevY, player.prevZ);
-        var look = (last.lerp(player.getPos(), delta)).subtract(lastPos.lerp(pos, delta)).multiply(1, 0, 1).normalize();
+        var last = player.getPos();//new Vec3d(player.prevX, player.prevY, player.prevZ).lerp(player.getPos(), delta);
+        var look = last.subtract(lastPos.lerp(pos, delta)).multiply(1, 0, 1).normalize();
         var angle = (float) Math.toDegrees(Math.atan2(look.getZ(), look.getX()));
         var endAngle = ((360 + angle + interval / 2) % interval - interval / 2) - 360;
         var value = original;
@@ -47,7 +52,7 @@ public class BillboardRotation implements ClientModInitializer {
 
     public static float getHeadRotation(float original, float interval) {
         var client = MinecraftClient.getInstance();
-        var player = client.player;
+        var player = client.gameRenderer.getCamera();
         if (player == null || interval <= 0) return original;
         var value = original;
         value /= interval;
@@ -64,20 +69,25 @@ public class BillboardRotation implements ClientModInitializer {
             yaw = Math.round(yaw) * interval;
             normalX = (float) Math.cos(Math.toRadians(yaw));
             normalZ = (float) Math.sin(Math.toRadians(yaw));
+            var normalLook = new Vec3d(normalX, 0, normalZ).normalize();
+            normalX = (float) normalLook.getX();
+            normalY = (float) normalLook.getY();
+            normalZ = (float) normalLook.getZ();
         }
         original.call(x, y, z, color, u, v, overlay, light, normalX, normalY, normalZ);
     }
 
     public static <S extends EntityRenderState, E extends Entity> void verticalRotation(EntityRenderer<E, S> instance, S state, @NotNull MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, Operation<Void> original, E entity) {
         matrices.push();
-        var player = MinecraftClient.getInstance().player;
-        if (player != null && entity != player) {
+        var player = MinecraftClient.getInstance().gameRenderer.getCamera();
+        if (player != null) {
             matrices.translate(0, entity.getHeight() / 2, 0);
             var delta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true);
-            var look = (new Vec3d(player.prevX, player.prevY, player.prevZ).lerp(player.getPos(), delta)).subtract(new Vec3d(entity.prevX, entity.prevY, entity.prevZ).lerp(entity.getPos(), delta)).multiply(1, 0, 1).normalize();
+            var last = player.getPos();//(new Vec3d(player.prevX, player.prevY, player.prevZ).lerp(player.getPos(), delta));
+            var look = last.subtract(new Vec3d(entity.prevX, entity.prevY, entity.prevZ).lerp(entity.getPos(), delta)).multiply(1, 0, 1).normalize();
             var angle = (float) Math.toDegrees(Math.atan2(look.getX(), look.getZ()));
             matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(angle));
-            var playerPos = new Vec3d(player.prevX, player.prevY + player.getStandingEyeHeight(), player.prevZ).lerp(new Vec3d(player.getX(), player.getEyeY(), player.getZ()), delta);
+            var playerPos = player.getPos();//new Vec3d(player.prevX, player.prevY + player.getStandingEyeHeight(), player.prevZ).lerp(new Vec3d(player.getX(), player.getEyeY(), player.getZ()), delta);
             var entityPos = new Vec3d(entity.prevX, entity.prevY + entity.getHeight() / 2, entity.prevZ).lerp(new Vec3d(entity.getX(), entity.getBodyY(.5), entity.getZ()), delta);
             var yAngle = entityPos.subtract(playerPos).normalize().y * 60;
             matrices.multiply(RotationAxis.NEGATIVE_X.rotationDegrees((float) -yAngle));
