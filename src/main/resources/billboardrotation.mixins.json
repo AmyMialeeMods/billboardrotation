@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "xyz.amymialee.billboardrotation.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityMixin"
+  ],
+  "client": [
+    "EntityRenderDispatcherMixin",
+    "EntityRendererMixin",
+    "EntityRenderStateMixin",
+    "LivingEntityRendererMixin",
+    "VertexConsumerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "billboardrotation",
+  "version": "${version}",
+
+  "name": "Billboard Rotation",
+  "description": "Limits mob rotation to set intervals",
+  "authors": [
+    "AmyMialee"
+  ],
+  "contact": {
+    "email": "contect@amymialee.xyz",
+    "homepage": "https://amymialee.xyz"
+  },
+  "license": "All-Rights-Reserved",
+  "icon": "assets/billboardrotation/icon.png",
+
+  "accessWidener" : "billboardrotation.accesswidener",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "xyz.amymialee.billboardrotation.BillboardRotation"
+    ],
+    "fabric-datagen": [
+      "xyz.amymialee.billboardrotation.BillboardRotationDataGen"
+    ]
+  },
+  "mixins": [
+    "billboardrotation.mixins.json"
+  ],
+
+  "depends": {
+    "fabric": "*"
+  }
+}
