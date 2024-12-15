@@ -27,10 +27,4 @@ public class LivingEntityRendererMixin<T extends LivingEntity> {
         if (BillboardRotation.ROTATE_VERTICALLY.get()) return 0;
         return original.call(instance, pitch);
     }
-
-//    @WrapOperation(method = "render(Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/entity/model/EntityModel;setAngles(Lnet/minecraft/client/render/entity/state/EntityRenderState;)V"))
-//    private void billboardrotation$setAngles(EntityModel<S> instance, @NotNull EntityRenderState state, @NotNull Operation<Void> original) {
-//        if (Math.round(state.age) % BillboardRotation.ANIMATION_DELAY.get() != 0) return;
-//        original.call(instance, state);
-//    }
 }

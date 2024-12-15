@@ -9,8 +9,6 @@
   "client": [
     "EntityRenderDispatcherMixin",
     "EntityRendererMixin",
-    "EntityRenderStateMixin",
-    "FeatureRendererMixin",
     "LivingEntityRendererMixin",
     "VertexConsumerMixin"
   ],
