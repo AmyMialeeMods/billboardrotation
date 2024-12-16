@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import xyz.amymialee.billboardrotation.BillboardRotation;
 
-@Mixin(value = {BufferBuilder.class, SpriteTexturedVertexConsumer.class, VertexConsumers.Dual.class, VertexConsumers.Union.class})
+@Mixin(BufferBuilder.class)
 public class VertexConsumerMixin {
     @WrapMethod(method = "vertex(FFFIFFIIFFF)V")
     private void billboardrotation$wrapVertex(float x, float y, float z, int color, float u, float v, int overlay, int light, float normalX, float normalY, float normalZ, @NotNull Operation<Void> original) {

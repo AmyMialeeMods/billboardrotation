@@ -14,12 +14,12 @@ import xyz.amymialee.billboardrotation.BillboardRotation;
 public class LivingEntityRendererMixin<T extends LivingEntity> {
     @WrapOperation(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/entity/LivingEntityRenderer;clampBodyYaw(Lnet/minecraft/entity/LivingEntity;FF)F"))
     private float billboardrotation$clamping(@NotNull LivingEntity entity, float degrees, float tickDelta, @NotNull Operation<Float> original) {
-        return BillboardRotation.getBodyRotation(new Vec3d(entity.prevX, entity.prevY, entity.prevZ), entity.getPos(), original.call(entity, degrees, tickDelta), BillboardRotation.BODY_ROTATION_INTERVAL.get());
+        return BillboardRotation.getBodyRotation(new Vec3d(entity.prevX, entity.prevY, entity.prevZ), entity.getPos(), original.call(entity, degrees, tickDelta));
     }
 
     @WrapOperation(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/MathHelper;wrapDegrees(F)F"))
     private float billboardrotation$clamping(float degrees, @NotNull Operation<Float> original, T entity) {
-        return BillboardRotation.getHeadRotation(original.call(degrees), BillboardRotation.HEAD_ROTATION_INTERVAL.get());
+        return BillboardRotation.getHeadRotation(original.call(degrees));
     }
 
     @WrapOperation(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F"))

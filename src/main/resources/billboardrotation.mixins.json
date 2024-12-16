@@ -4,11 +4,12 @@
   "package": "xyz.amymialee.billboardrotation.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "EntityMixin"
   ],
   "client": [
+    "EntityMixin",
     "EntityRenderDispatcherMixin",
     "EntityRendererMixin",
+    "EntityRenderStateMixin",
     "LivingEntityRendererMixin",
     "VertexConsumerMixin"
   ],

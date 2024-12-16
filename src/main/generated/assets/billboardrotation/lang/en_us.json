@@ -1,6 +1,4 @@
 {
-  "mvalue.billboardrotation.adjust_to_player_rotation": "Adjust to Player Rotation",
-  "mvalue.billboardrotation.adjust_to_player_rotation.desc": "Whether the entity should adjust to the player's rotation",
   "mvalue.billboardrotation.animation_delay": "Animation Delay",
   "mvalue.billboardrotation.animation_delay.desc": "The delay between each animation frame",
   "mvalue.billboardrotation.body_rotation_interval": "Body Rotation Interval",
