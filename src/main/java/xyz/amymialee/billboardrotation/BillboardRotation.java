@@ -5,15 +5,23 @@ import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.state.BoatEntityRenderState;
 import net.minecraft.client.render.entity.state.EntityRenderState;
+import net.minecraft.client.render.entity.state.LivingEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import xyz.amymialee.billboardrotation.util.SingleTicker;
+import xyz.amymialee.billboardrotation.util.StateHolder;
 import xyz.amymialee.mialib.mvalues.MValue;
 import xyz.amymialee.mialib.mvalues.MValueCategory;
 import xyz.amymialee.mialib.mvalues.MValueType;
@@ -39,12 +47,57 @@ public class BillboardRotation implements ClientModInitializer {
         };
     }
 
+    public static boolean shouldEffectEntity(Entity entity) {
+        return !(entity instanceof DisplayEntity) && !(entity instanceof ArmorStandEntity stand && stand.isInvisible());
+    }
+
+    public static <T extends Entity, S extends EntityRenderState> void getAndUpdateRenderState(EntityRenderer<T, S> instance, T entity, S state, float tickDelta, Operation<Void> original) {
+        if (ANIMATION_DELAY.get() == 0 || !shouldEffectEntity(entity)) {
+            original.call(instance, entity, state, tickDelta);
+            return;
+        }
+        if (entity instanceof StateHolder holder) {
+            if (shouldSetAngles(entity) && ((SingleTicker) holder.billboardrotation$getState()).billboardrotation$shouldUpdate()) {
+                ((SingleTicker) holder.billboardrotation$getState()).billboardrotation$setShouldUpdate(false);
+                original.call(instance, entity, holder.billboardrotation$getState(), tickDelta);
+            } else if (entity instanceof LivingEntity livingEntity && holder.billboardrotation$getState() instanceof LivingEntityRenderState renderState) {
+                var yaw = MathHelper.lerpAngleDegrees(tickDelta, livingEntity.prevHeadYaw, livingEntity.headYaw);
+                renderState.bodyYaw = getBodyRotation(entity, new Vec3d(entity.prevX, entity.prevY, entity.prevZ), entity.getPos(), clampBodyYaw(livingEntity, yaw, tickDelta));
+                renderState.yawDegrees = getHeadRotation(entity, MathHelper.wrapDegrees(yaw - renderState.bodyYaw));
+            }
+            if (entity.hasPassengerDeep(MinecraftClient.getInstance().player) && !MinecraftClient.getInstance().gameRenderer.getCamera().isThirdPerson() && holder.billboardrotation$getState() instanceof BoatEntityRenderState renderState) {
+                renderState.yaw = entity.getLerpedYaw(tickDelta);
+            }
+        }
+    }
+
+    public static <T extends Entity, S extends EntityRenderState> void stateHolderCheck(@NotNull T entity, @NotNull CallbackInfoReturnable<S> cir) {
+        if (ANIMATION_DELAY.get() == 0 || !shouldEffectEntity(entity)) return;
+        cir.setReturnValue(entity instanceof StateHolder holder ? (S) holder.billboardrotation$getState() : cir.getReturnValue());
+    }
+
+    private static float clampBodyYaw(@NotNull LivingEntity entity, float degrees, float tickDelta) {
+        if (!(entity.getVehicle() instanceof LivingEntity livingEntity)) return MathHelper.lerpAngleDegrees(tickDelta, entity.prevBodyYaw, entity.bodyYaw);
+        var body = MathHelper.lerpAngleDegrees(tickDelta, livingEntity.prevBodyYaw, livingEntity.bodyYaw);
+        var clamped = MathHelper.clamp(MathHelper.wrapDegrees(degrees - body), -85.0F, 85.0F);
+        body = degrees - clamped;
+        if (Math.abs(clamped) > 50.0F) body += clamped * 0.2F;
+        return body;
+    }
+
+    public static float pitchRemoval(LivingEntity instance, float pitch, Operation<Float> original) {
+        if (ROTATE_VERTICALLY.get() && shouldEffectEntity(instance)) return 0;
+        return original.call(instance, pitch);
+    }
+
     public static boolean shouldSetAngles(Entity entity) {
         if (ANIMATION_DELAY.get() == 0) return true;
+        if (!shouldEffectEntity(entity)) return true;
         return entity.age % ANIMATION_DELAY.get() == 0;
     }
 
-    public static float getBodyRotation(Vec3d lastPos, Vec3d pos, float original) {
+    public static float getBodyRotation(Entity entity, Vec3d lastPos, Vec3d pos, float original) {
+        if (!shouldEffectEntity(entity)) return original;
         var interval = (float) (360.0 / Math.pow(2, BODY_ROTATION_INTERVAL.get()));
         if (BODY_ROTATION_INTERVAL.get() <= 0) return original;
         var client = MinecraftClient.getInstance();
@@ -60,7 +113,8 @@ public class BillboardRotation implements ClientModInitializer {
         return MathHelper.wrapDegrees(endAngle + value);
     }
 
-    public static float getHeadRotation(float original) {
+    public static float getHeadRotation(Entity entity, float original) {
+        if (!shouldEffectEntity(entity)) return original;
         var interval = (float) (360f / Math.pow(2, HEAD_ROTATION_INTERVAL.get()));
         if (HEAD_ROTATION_INTERVAL.get() <= 0) return original;
         var client = MinecraftClient.getInstance();
@@ -94,7 +148,7 @@ public class BillboardRotation implements ClientModInitializer {
         var client = MinecraftClient.getInstance();
         var player = client.player;
         var camera = client.gameRenderer.getCamera();
-        if (ROTATE_VERTICALLY.get() && player != null && camera != null && !entity.hasPassengerDeep(player)) {
+        if (ROTATE_VERTICALLY.get() && shouldEffectEntity(entity) && player != null && camera != null && !entity.hasPassengerDeep(player)) {
             matrices.translate(0, entity.getHeight() / 2, 0);
             var delta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true);
             var look = camera.getPos().subtract(new Vec3d(entity.prevX, entity.prevY, entity.prevZ).lerp(entity.getPos(), delta)).multiply(1, 0, 1).normalize();
